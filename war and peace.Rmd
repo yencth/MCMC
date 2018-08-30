@@ -1,0 +1,43 @@
+---
+title: "Text Decryption Using MCMC_War and Peace"
+output: html_document
+---
+
+
+```{r cars}
+reference=readLines("./War and peace.txt")
+reference=toupper(reference)
+ 
+trans.mat=matrix(0,27,27)
+rownames(trans.mat)=colnames(trans.mat)=c(toupper(letters),"")
+lastletter=""
+for (ln in 1:length(reference)) {
+  if (ln %% 1000 ==0) {cat("Line",ln,"\n")}
+  for (pos in 1:nchar(reference[ln])) {
+    curletter=substring(reference[ln],pos,pos)
+    if (curletter %in% toupper(letters)) {
+      trans.mat[rownames(trans.mat)==lastletter,
+                colnames(trans.mat)==curletter]=
+        trans.mat[rownames(trans.mat)==lastletter,
+                  colnames(trans.mat)==curletter]+1
+      lastletter=curletter
+    } else {
+      if (lastletter!="") {
+        trans.mat[rownames(trans.mat)==lastletter,27]=
+          trans.mat[rownames(trans.mat)==lastletter,27]+1
+        lastletter=""
+      }
+    }
+  }
+  curletter=""
+  if (lastletter!="") {
+    trans.mat[rownames(trans.mat)==lastletter,27]=
+      trans.mat[rownames(trans.mat)==lastletter,27]+1
+  }
+  lastletter=""
+}
+ 
+trans.prob.mat=sweep(trans.mat+1,1,rowSums(trans.mat+1),FUN="/")
+```
+
+
