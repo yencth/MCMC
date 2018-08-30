@@ -1,0 +1,279 @@
+---
+title: "Markov Chain Forecast Example"
+output: html_document
+---
+# Markov Chain Basics
+
+Markov chains are an essential component of Markov chain Monte Carlo (MCMC) techniques.
+
+Introduction: http://www.dartmouth.edu/~chance/teaching_aids/books_articles/probability_book/Chapter11.pdf.
+
+Good reference: https://people.eecs.berkeley.edu/~sinclair/cs294/n2.pdf.
+
+Another one: https://www.cs.cmu.edu/~venkatg/teaching/CStheory-infoage/book-chapter-5.pdf.
+
+In probability theory and statistics, a sequence or other collection of random variables is independent and identically distributed (i.i.d. or iid or IID) if each random variable has the same probability distribution as the others and all are mutually independent.
+
+Definition: A stochastic process X1,X2,.,X1,X2,., is a Markov process ( or Markov chain) if for any discrete time index n=1,2,. ,Pr(Xn+1=xn+1|Xn=xn,.,X1=x1)=Pr(Xn+1=xn+1|Xn=xn)
+
+In Markov chain, the probability of a random variable X being equal to some value x at time n + 1, given all the x values that came before it in the sequence, is equal to the probability of X being equal to some value x at time n + 1 given just the value of x that came before it. In other words, X at time n + 1 is only dependent on x at time n, not any other value of x. So in a sequence, you can say that X at time n + 1 is independent of all other x except X at time n.
+
+All values in the Markov Chain are not independent of each other because P(Xn+1|Xn)???P(Xn+1)P(Xn+1|Xn)???P(Xn+1). After enough iterations, the chain (usually) converges in distribution so they would be identically distributed.
+
+Markov chains represent a class of stochastic processes of great interest for the wide spectrum of practical applications. In particular, discrete time Markov chains (DTMC) permit to model the transition probabilities between discrete states by the aid of matrices.
+
+Note: the row sum automatically equals to 1
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## What is Transition Matrix (Stochastic Matrix)?
+
+```{r}
+#install.packages("markovchain")
+library(markovchain)
+```
+
+```{r pressure, echo=FALSE}
+library(diagram)
+```
+
+```{r}
+# define a transition matrix
+tmA <- matrix(c(0.25,0.65,0.1,.25,0.25,.5,.35,.25,0.4),nrow = 3, byrow = TRUE)
+# create the DTMC
+dtmcA <- new("markovchain",transitionMatrix=tmA, states=c("No Rain","Light Rain","Heavy Rain"), name="MarkovChain A") 
+dtmcA
+```
+```{r}
+plot(dtmcA)
+```
+
+# Visulization by plotmat function from diagram package
+```{r}
+stateNames <- c("No Rain","Light Rain","Heavy Rain")
+row.names(tmA) <- stateNames; colnames(tmA) <- stateNames
+plotmat(tmA,pos = c(1,2), 
+        lwd = 1, box.lwd = 2, 
+        cex.txt = 0.8, 
+        box.size = 0.1, 
+        box.type = "circle", 
+        box.prop = 0.5,
+        box.col = "light blue",
+        arr.length=.1,
+        arr.width=.1,
+        self.cex = .6,
+        self.shifty = -.01,
+        self.shiftx = .14,
+        main = "Markov Chain")
+```
+# n-steps and steady states distribution
+```{r}
+# It is possible to simulate states distribution after n-steps
+initialState<-c(0,1,0)
+steps<-2
+finalState<-initialState*dtmcA^steps #using power operator
+finalState
+```
+
+```{r}
+# As well as steady states distribution
+steadyStates(dtmcA)
+```
+# Forecasting Example: Baby Crying, Eating and Sleeping
+```{r}
+library(expm)
+```
+
+```{r}
+library(pracma)
+```
+
+```{r}
+stateNames <- c("Crying","Eating","Sleeping")
+Oz <- matrix(c(0.25,0.65,0.1,.25,0.25,.5,.35,.25,0.4),
+             nrow=3, byrow=TRUE)
+row.names(Oz) <- stateNames; colnames(Oz) <- stateNames
+Oz
+```
+
+```{r}
+plotmat(Oz,pos = c(1,2), 
+        lwd = 1, box.lwd = 2, 
+        cex.txt = 0.8, 
+        box.size = 0.1, 
+        box.type = "circle", 
+        box.prop = 0.5,
+        box.col = "light blue",
+        arr.length=.1,
+        arr.width=.1,
+        self.cex = .4,
+        self.shifty = -.01,
+        self.shiftx = .13,
+        main = "")
+```
+# Define current state
+She is eating now, that means starting vector (0,1,0)
+```{r}
+x1 <- matrix(c(0,1,0),nrow=1, byrow=TRUE)
+```
+# Forecast the state in next hour
+```{r}
+x1 %*% Oz
+```
+# Forecast the state after 5 hours
+```{r}
+Oz5 <- Oz %^% 5
+Oz5=round(Oz5,3)
+
+plotmat(Oz5,pos = c(1,2), 
+        lwd = 1, box.lwd = 2, 
+        cex.txt = 0.8, 
+        box.size = 0.12, 
+        box.type = "circle", 
+        box.prop = 0.7,
+        box.col = "light blue",
+        arr.length=.4,
+        arr.width=.2,
+        self.cex = .6,
+        self.shifty = -.01,
+        self.shiftx = .17,
+        main = "Markov Chain Transition Matrix")
+```
+
+```{r}
+round(x1 %*% Oz5,3)
+```
+# Forecasting Example: Rain Fall Time Series
+```{r}
+data(rain)
+mysequence<-rain$rain
+createSequenceMatrix(mysequence)
+```
+
+```{r}
+head(rain)
+```
+
+```{r}
+myFit<-markovchainFit(data=mysequence,confidencelevel = .9,method = "mle")
+myFit
+```
+
+```{r}
+alofiMc<-myFit$estimate
+alofiMc
+```
+
+```{r}
+a11=alofiMc[1,1]
+a12=alofiMc[1,2]
+a13=alofiMc[1,3]
+a21=alofiMc[2,1]
+a22=alofiMc[2,2]
+a23=alofiMc[2,3]
+a31=alofiMc[3,1]
+a32=alofiMc[3,2]
+a33=alofiMc[3,3]
+
+## Hard code the transition matrix
+stateNames <- c("No Rain","Light Rain","Heavy Rain")
+ra <- matrix(c(a11,a12,a13,a21,a22,a23,a31,a32,a33),nrow=3, byrow=TRUE)
+#ra <- matrix(c(0.660,0.230,0.110,0.463,0.306,0.231,0.198,0.312,0.490),nrow=3, byrow=TRUE)
+
+dtmcA <- new("markovchain",transitionMatrix=ra, states=c("No Rain","Light Rain","Heavy Rain"), name="MarkovChain A") 
+
+dtmcA
+```
+
+```{r}
+plot(dtmcA)
+```
+
+```{r}
+row.names(ra) <- stateNames; colnames(ra) <- stateNames
+ra = round(ra,3)
+plotmat(ra,pos = c(1,2), 
+        lwd = 1, box.lwd = 2, 
+        cex.txt = 0.8, 
+        box.size = 0.1, 
+        box.type = "circle", 
+        box.prop = 0.5,
+        box.col = "light blue",
+        arr.length=.1,
+        arr.width=.1,
+        self.cex = .4,
+        self.shifty = -.01,
+        self.shiftx = .13,
+        main = "Markov Chain Transition Matrix")
+
+```
+# Define current state
+```{r}
+x1 <- matrix(c(1,0,0),nrow=1, byrow=TRUE)
+```
+# Forecast the state of tomorrow
+```{r}
+x1 %*% ra
+```
+# Forecast the states for the next 7 days
+```{r}
+ra2 <- ra %^% 2
+ra3 <- ra %^% 3
+ra4 <- ra %^% 4
+ra5 <- ra %^% 5
+ra6 <- ra %^% 6
+ra7 <- ra %^% 7
+cat("Day 1 Forecast")
+```
+
+```{r}
+round(x1%*%ra,3)
+```
+
+```{r}
+cat("Day 2 Forecast")
+```
+
+```{r}
+round(x1%*%ra2,3)
+```
+
+```{r}
+cat("Day 3 Forecast")
+```
+
+```{r}
+round(x1%*%ra3,3)
+```
+
+```{r}
+cat("Day 4 Forecast")
+round(x1%*%ra4,3)
+cat("Day 5 Forecast")
+round(x1%*%ra5,3)
+cat("Day 6 Forecast")
+round(x1%*%ra5,3)
+cat("Day 7 Forecast")
+round(x1%*%ra7,3)
+```
+
+```{r}
+ra7=round(ra7,3)
+
+plotmat(ra7,pos = c(1,2), 
+        lwd = 1, box.lwd = 2, 
+        cex.txt = 0.8, 
+        box.size = 0.1, 
+        box.type = "circle", 
+        box.prop = 0.5,
+        box.col = "light blue",
+        arr.length=.1,
+        arr.width=.1,
+        self.cex = .6,
+        self.shifty = -.01,
+        self.shiftx = .14,
+        main = "The transition matrix after 7 days")
+```
+
+

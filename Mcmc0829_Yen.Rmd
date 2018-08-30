@@ -1,0 +1,28 @@
+---
+title: "Stochastic Processes in R"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 
+```{r}
+library(purrr)
+simulate_step <- function(state) {
+  state <- sample(nrow(transition_matrix), 1, prob = transition_matrix[state, ])
+  colnames(transition_matrix)[state]
+}
+```
+
+
+## Including Plots
+
+```{r pressure, echo=FALSE}
+
+```
+
+
